@@ -1,0 +1,663 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Calha Cuiabá</title>
+<meta name="description" content="Dimensionamento de calhas e condutores verticais (NBR 10844) com a curva de chuva de Cuiabá. Desenvolvido por Eng. Civil e Sanitarista Raulmar Rodrigues de Freitas.">
+<meta name="author" content="Raulmar Rodrigues de Freitas">
+<meta name="theme-color" content="#0E6E8C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Calha Cuiabá">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<style>
+/* Layout: app de uma coluna, painel de resultado fixo no topo + abas por etapa (Chuva/Telhado → Calha → Descida → Memorial) */
+:root{
+  --bg:#EAF0F2; --surface:#FFFFFF; --sunk:#DCE5E9; --fg:#122229; --muted:#566B74; --line:#C5D2D8;
+  --accent:#0E6E8C; --accent-ink:#FFFFFF; --water:#3BA3C9; --water-soft:rgba(59,163,201,.28); --metal:#8FA1A9;
+  --ok:#1F7A4D; --ok-bg:#DCF1E5; --warn:#A65B00; --warn-bg:#FBEBD3; --bad:#B3261E; --bad-bg:#F9DEDC;
+  --display:"Arial Narrow",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,Menlo,Consolas,monospace;
+  --r:14px;
+  --in-bg:#FFF4CC; --in-line:#E2B13A; --in-fg:#3A2A00; --in-unit:#7A5600; --in-tag:#FBE7A1; --in-focus:#C78A00; --in-ring:rgba(226,177,58,.35);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D171C; --surface:#15232A; --sunk:#0A1216; --fg:#E3ECEF; --muted:#8FA4AD; --line:#2A3D46;
+  --accent:#4DB6D8; --accent-ink:#06222C; --water:#4DB6D8; --water-soft:rgba(77,182,216,.25); --metal:#5F737C;
+  --ok:#6FD39E; --ok-bg:#163527; --warn:#F2B35E; --warn-bg:#3A2A12; --bad:#F2918B; --bad-bg:#3D1A18;
+  --in-bg:#2F2810; --in-line:#C99A2E; --in-fg:#FFE6A0; --in-unit:#F0C65A; --in-tag:#3D3314; --in-focus:#F0C65A; --in-ring:rgba(240,198,90,.3); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D171C; --surface:#15232A; --sunk:#0A1216; --fg:#E3ECEF; --muted:#8FA4AD; --line:#2A3D46;
+  --accent:#4DB6D8; --accent-ink:#06222C; --water:#4DB6D8; --water-soft:rgba(77,182,216,.25); --metal:#5F737C;
+  --ok:#6FD39E; --ok-bg:#163527; --warn:#F2B35E; --warn-bg:#3A2A12; --bad:#F2918B; --bad-bg:#3D1A18;
+  --in-bg:#2F2810; --in-line:#C99A2E; --in-fg:#FFE6A0; --in-unit:#F0C65A; --in-tag:#3D3314; --in-focus:#F0C65A; --in-ring:rgba(240,198,90,.3); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:0 48px}
+header.top{padding-block:20px 12px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-stretch:85%;font-weight:800;font-size:2rem;line-height:1;margin:0;letter-spacing:-.01em}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:.82rem;margin:6px 0 0}
+.badge-norma{font-family:var(--mono);font-size:.7rem;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:4px 9px;white-space:nowrap}
+
+/* painel de resultado */
+.status{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px}
+.status-in{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;box-shadow:0 6px 18px -12px rgba(0,0,0,.35)}
+.kpi{min-width:0}
+.kpi .l{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.kpi .v{font-family:var(--display);font-stretch:90%;font-weight:700;font-size:1.25rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi .v small{font-family:var(--body);font-weight:500;font-size:.7rem;color:var(--muted);margin-left:2px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:600;border-radius:99px;padding:2px 8px;margin-top:3px}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* abas */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sunk);padding:4px;border-radius:12px;margin:8px 0 14px}
+.tabs button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 .82rem var(--body);padding:9px 4px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.tabs button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px;margin-bottom:12px}
+h2{font-family:var(--display);font-stretch:90%;font-size:1.15rem;margin:0;font-weight:700}
+h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0;font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:420px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+label.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+label.f > span{font-size:.8rem;font-weight:500}
+label.f > span em{font-style:normal;color:var(--muted);font-weight:400}
+.inp{display:flex;align-items:center;background:var(--in-bg);border:2px solid var(--in-line);border-radius:10px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.inp:focus-within{border-color:var(--in-focus);box-shadow:0 0 0 3px var(--in-ring)}
+.inp input,.inp select,select.sel{flex:1;min-width:0;width:100%;border:0;background:transparent;color:var(--in-fg);font:600 16px var(--mono);padding:10px 10px;font-variant-numeric:tabular-nums}
+.inp input:focus-visible{outline:none}
+select.sel{background:var(--in-bg);border:2px solid var(--in-line);border-radius:10px;font-family:var(--body);font-weight:600}
+select.sel:focus-visible{outline:none;border-color:var(--in-focus);box-shadow:0 0 0 3px var(--in-ring)}
+.inp .u{font:600 .78rem var(--mono);color:var(--in-unit);background:var(--in-tag);align-self:stretch;display:flex;align-items:center;padding:0 10px;white-space:nowrap}
+.dimres{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.dimres .dt{border:2px solid var(--accent);border-radius:12px;padding:10px 12px;background:var(--surface);min-width:0}
+.dimres .dt .l{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.dimres .dt .v{font-family:var(--display);font-stretch:90%;font-weight:800;font-size:1.7rem;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.1}
+.dimres .dt .v small{font-size:.85rem;font-weight:600;margin-left:3px}
+.dimres .dt .x{font-size:.72rem;color:var(--muted);font-family:var(--mono)}
+.legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:.74rem;color:var(--muted);margin:2px 0 4px}
+.legenda span{display:inline-flex;align-items:center;gap:6px}
+.legenda i{width:18px;height:12px;border-radius:3px;display:inline-block}
+.legenda .li{background:var(--in-bg);border:2px solid var(--in-line)}
+.legenda .lr{background:var(--surface);border:1px dashed var(--line)}
+.hint{font-size:.76rem;color:var(--muted);margin:0}
+
+/* seletores visuais */
+.chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.chip{appearance:none;border:1.5px solid var(--line);background:var(--sunk);color:var(--fg);border-radius:12px;padding:10px 6px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font:600 .8rem var(--body)}
+.chip svg{width:46px;height:30px}
+.chip small{font-weight:400;color:var(--muted);font-size:.7rem;font-family:var(--mono)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--surface);box-shadow:inset 0 0 0 1px var(--accent)}
+.chip .stroke{stroke:var(--fg)} .chip .wfill{fill:var(--water-soft)}
+
+/* figuras */
+.fig{background:var(--sunk);border-radius:12px;padding:10px;overflow-x:auto}
+.fig svg{display:block;width:100%;height:auto}
+.fig text{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+.res{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin:0}
+.res div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding-block:5px;min-width:0}
+.res dt{color:var(--muted);font-size:.82rem}
+.res dd{margin:0;font-family:var(--mono);font-size:.85rem;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+@media (max-width:460px){.res{grid-template-columns:1fr}}
+.verdict{border-radius:12px;padding:12px 14px;font-size:.88rem;display:flex;flex-direction:column;gap:4px}
+.verdict strong{font-family:var(--display);font-stretch:90%;font-size:1.05rem}
+.verdict.ok{background:var(--ok-bg);color:var(--ok)} .verdict.warn{background:var(--warn-bg);color:var(--warn)} .verdict.bad{background:var(--bad-bg);color:var(--bad)}
+.verdict p{margin:0;color:var(--fg)}
+.btn{appearance:none;border:0;background:var(--accent);color:var(--accent-ink);font:600 .9rem var(--body);padding:11px 16px;border-radius:10px;cursor:pointer;align-self:flex-start}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+pre.memo{white-space:pre-wrap;font:.8rem/1.55 var(--mono);background:var(--sunk);border-radius:12px;padding:14px;margin:0;max-height:none;overflow-x:auto}
+table.dn{width:100%;border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums}
+table.dn th{text-align:left;font-weight:600;color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;padding:6px 4px;border-bottom:1px solid var(--line)}
+table.dn td{padding:7px 4px;border-bottom:1px dashed var(--line);font-family:var(--mono)}
+table.dn tr.sel td{background:var(--ok-bg);color:var(--ok);font-weight:600}
+.tw{overflow-x:auto}
+.formula{font-family:var(--mono);font-size:.82rem;background:var(--sunk);border-radius:10px;padding:10px 12px;overflow-x:auto;white-space:nowrap}
+footer{color:var(--muted);font-size:.74rem;margin-top:18px;line-height:1.5}
+footer a{color:var(--accent)}
+.dev{margin:8px 0 0;font-size:.78rem;color:var(--muted);text-wrap:balance}
+.dev strong{color:var(--fg);font-weight:600}
+.credito{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg);font-size:.86rem;line-height:1.35}
+.credito span{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+.credito strong{font-family:var(--display);font-stretch:90%;font-size:1.05rem}
+#roof{grid-template-columns:repeat(3,minmax(0,1fr))}
+#roof .chip{font-size:.74rem;text-align:center;line-height:1.15}
+.fig .lb{fill:var(--accent);font-weight:500}
+.fig .rf{fill:none;stroke:var(--metal);stroke-width:2.2;stroke-linejoin:round}
+.fig .dash{stroke:var(--muted);stroke-dasharray:3 3;fill:none}
+.fig .dimL{stroke:var(--accent);fill:none}
+.fig .gut{fill:var(--water-soft);stroke:var(--water);stroke-width:1.5}
+@media (prefers-reduced-motion:no-preference){.pill,.verdict{transition:background .2s,color .2s}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Calha <span>Cuiabá</span></h1>
+      <p class="sub">Dimensionamento de calhas e condutores verticais</p>
+      <p class="dev">Desenvolvido por <strong>Eng. Civil e Sanitarista Raulmar Rodrigues de Freitas</strong></p>
+    </div>
+    <span class="badge-norma">NBR 10844</span>
+  </header>
+
+  <div class="status" aria-live="polite">
+    <div class="status-in">
+      <div class="kpi"><div class="l">Intensidade</div><div class="v" id="k-i">–</div></div>
+      <div class="kpi"><div class="l">Vazão por trecho</div><div class="v" id="k-q">–</div></div>
+      <div class="kpi"><div class="l">Verificação</div><div id="k-st"></div></div>
+    </div>
+  </div>
+
+  <div class="legenda"><span><i class="li"></i>Dado de entrada (preencha)</span><span><i class="lr"></i>Resultado calculado</span></div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="t1" aria-selected="true" data-p="p1">Chuva</button>
+    <button role="tab" id="t2" aria-selected="false" data-p="p2">Calha</button>
+    <button role="tab" id="t3" aria-selected="false" data-p="p3">Descida</button>
+    <button role="tab" id="t4" aria-selected="false" data-p="p4">Memorial</button>
+  </div>
+
+  <!-- CHUVA E TELHADO -->
+  <div id="p1" role="tabpanel">
+    <section class="card">
+      <h2>Chuva de projeto</h2>
+      <div class="formula">i = 1016,453 · T<sup>0,133</sup> / (t + 7,5)<sup>0,739</sup> &nbsp;[mm/h]</div>
+      <div class="grid2">
+        <label class="f"><span>Período de retorno <em>T</em></span>
+          <select class="sel" id="T">
+            <option value="1">1 ano · áreas pavimentadas</option>
+            <option value="5" selected>5 anos · coberturas e terraços</option>
+            <option value="25">25 anos · sem tolerância a extravasamento</option>
+          </select></label>
+        <label class="f"><span>Duração <em>t</em></span>
+          <div class="inp"><input id="t" type="number" inputmode="decimal" value="5" min="5" step="1"><span class="u">min</span></div></label>
+      </div>
+      <p class="hint">A NBR 10844 adota duração de 5 min. Períodos de retorno conforme item 5.1.2 da norma.</p>
+      <div class="fig"><svg id="idf" viewBox="0 0 340 170" role="img" aria-label="Curva IDF de Cuiabá"></svg></div>
+    </section>
+
+    <section class="card">
+      <h2>Tipo de cobertura</h2>
+      <div class="chips" id="roof"></div>
+      <div class="fig"><svg id="roofsvg" viewBox="0 0 340 140" role="img" aria-label="Esquema da cobertura"></svg></div>
+      <p class="hint" id="r-nota"></p>
+      <div class="grid3" id="rdims"></div>
+      <div class="formula" id="r-form"></div>
+      <h3>Parede acima da cobertura <em style="text-transform:none;letter-spacing:0;font-style:normal">(opcional)</em></h3>
+      <div class="grid2">
+        <label class="f"><span>Altura da parede</span><div class="inp"><input id="hp" type="number" inputmode="decimal" value="0" step="0.1" min="0"><span class="u">m</span></div></label>
+        <label class="f"><span>Comprimento</span><div class="inp"><input id="bp" type="number" inputmode="decimal" value="0" step="0.1" min="0"><span class="u">m</span></div></label>
+      </div>
+      <p class="hint">Platibanda ou parede mais alta que escoa para a calha. A NBR 10844 soma metade da área vertical: (altura · comprimento)/2.</p>
+      <label class="f"><span>Número de descidas nesta calha</span><div class="inp"><input id="nd" type="number" inputmode="numeric" value="2" min="1" step="1"><span class="u">un</span></div></label>
+      <dl class="res">
+        <div><dt>Área de contribuição</dt><dd id="r-A">–</dd></div>
+        <div><dt>Vazão total</dt><dd id="r-Q">–</dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <!-- CALHA -->
+  <div id="p2" role="tabpanel" hidden>
+    <section class="card">
+      <h2>Formato da calha</h2>
+      <div class="chips" id="forma">
+        <button class="chip" data-v="ret" aria-pressed="true"><svg viewBox="0 0 46 30"><rect class="wfill" x="7" y="13" width="32" height="13"/><path class="stroke" d="M7 4V26H39V4" fill="none" stroke-width="2"/></svg>Retangular</button>
+        <button class="chip" data-v="cir" aria-pressed="false"><svg viewBox="0 0 46 30"><path class="wfill" d="M9 12A14 14 0 0 0 37 12Z"/><path class="stroke" d="M7 4A16 16 0 0 0 39 4" fill="none" stroke-width="2"/></svg>Circular</button>
+        <button class="chip" data-v="tri" aria-pressed="false"><svg viewBox="0 0 46 30"><path class="wfill" d="M13 13H33L23 27Z"/><path class="stroke" d="M5 3L23 27L41 3" fill="none" stroke-width="2"/></svg>Triangular</button>
+      </div>
+      <h3>Material</h3>
+      <div class="chips" id="mat">
+        <button class="chip" data-v="aco" aria-pressed="true">Aço<small>n = 0,011</small></button>
+        <button class="chip" data-v="pvc" aria-pressed="false">Plástico<small>n = 0,011</small></button>
+        <button class="chip" data-v="conc" aria-pressed="false">Concreto<small id="n-conc">n = 0,012</small></button>
+      </div>
+      <label class="f" id="w-acab" hidden><span>Acabamento do concreto</span>
+        <select class="sel" id="acab"><option value="0.012">Alisado · n = 0,012</option><option value="0.013">Não alisado · n = 0,013</option></select></label>
+    </section>
+
+    <section class="card">
+      <h2>Parâmetros de cálculo</h2>
+      <div class="grid2" id="dims"></div>
+      <div class="grid2">
+        <label class="f"><span>Declividade <em>(mín. 0,5%)</em></span><div class="inp"><input id="S" type="number" inputmode="decimal" value="0.5" step="0.1" min="0.1"><span class="u">%</span></div></label>
+        <label class="f"><span>Lâmina d'água <em>(da altura)</em></span><div class="inp"><input id="fill" type="number" inputmode="decimal" value="66" step="1" min="10" max="100"><span class="u">%</span></div></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Dimensões calculadas</h2>
+      <div class="dimres" id="c-dim"></div>
+      <div class="fig"><svg id="secao" viewBox="0 0 340 170" role="img" aria-label="Seção transversal da calha"></svg></div>
+      <dl class="res">
+        <div><dt>Área molhada</dt><dd id="c-Am">–</dd></div>
+        <div><dt>Perímetro molhado</dt><dd id="c-P">–</dd></div>
+        <div><dt>Raio hidráulico</dt><dd id="c-Rh">–</dd></div>
+        <div><dt>Velocidade</dt><dd id="c-V">–</dd></div>
+        <div><dt>Capacidade</dt><dd id="c-Qc">–</dd></div>
+        <div><dt>Vazão de projeto</dt><dd id="c-Qp">–</dd></div>
+      </dl>
+      <div class="verdict" id="c-ver"></div>
+    </section>
+  </div>
+
+  <!-- DESCIDA -->
+  <div id="p3" role="tabpanel" hidden>
+    <section class="card">
+      <h2>Condutor vertical</h2>
+      <div class="chips" id="dforma" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+        <button class="chip" data-v="cir" aria-pressed="true"><svg viewBox="0 0 46 30"><circle class="stroke" cx="23" cy="15" r="11" fill="none" stroke-width="2"/></svg>Circular</button>
+        <button class="chip" data-v="ret" aria-pressed="false"><svg viewBox="0 0 46 30"><rect class="stroke" x="10" y="6" width="26" height="18" fill="none" stroke-width="2"/></svg>Retangular</button>
+      </div>
+      <div class="grid2" id="ddims"></div>
+      <label class="f"><span>Taxa de ocupação do tubo <em>(rs)</em></span><div class="inp"><input id="rs" type="number" inputmode="decimal" value="33" step="1" min="10" max="50"><span class="u">%</span></div></label>
+      <p class="hint">A capacidade é o menor valor entre a entrada pela calha (vertedor ou orifício, com a lâmina d'água da calha) e o escoamento anular no tubo (Wyly-Eaton). Diâmetro interno mínimo de 70 mm (NBR 10844).</p>
+      <dl class="res">
+        <div><dt>Vazão por descida</dt><dd id="d-Qp">–</dd></div>
+        <div><dt>Lâmina na entrada</dt><dd id="d-H">–</dd></div>
+        <div><dt>Entrada · vertedor</dt><dd id="d-Qv">–</dd></div>
+        <div><dt>Entrada · orifício</dt><dd id="d-Qo">–</dd></div>
+        <div><dt>Tubo · Wyly-Eaton</dt><dd id="d-Qt">–</dd></div>
+        <div><dt>Capacidade adotada</dt><dd id="d-Qc">–</dd></div>
+      </dl>
+      <div class="verdict" id="d-ver"></div>
+    </section>
+    <section class="card" id="d-tab-card">
+      <h2>Diâmetros comerciais</h2>
+      <div class="tw"><table class="dn"><thead><tr><th>DN</th><th>Capacidade</th><th>Uso</th><th>Área máx. por descida</th></tr></thead><tbody id="d-tab"></tbody></table></div>
+    </section>
+  </div>
+
+  <!-- MEMORIAL -->
+  <div id="p4" role="tabpanel" hidden>
+    <section class="card">
+      <h2>Memorial de cálculo</h2>
+      <pre class="memo" id="memo"></pre>
+      <div class="row"><button class="btn" id="copiar" type="button">Copiar memorial</button><span class="hint" id="copiado"></span></div>
+    </section>
+    <section class="card">
+      <h2>Base técnica</h2>
+      <p class="hint" style="font-size:.84rem">Calha: fórmula de Manning conforme NBR 10844, Q = K · (S/n) · Rh<sup>2/3</sup> · i<sup>1/2</sup>, com K = 60 000 (Q em L/min). Coeficientes de rugosidade da Tabela 2 da norma. Condutor: verificação da entrada como vertedor de parede delgada e orifício (Cd = 0,6) e do tubo pela equação de Wyly-Eaton. Os ábacos da NBR 10844 podem resultar em valores diferentes; confira o resultado final com eles.</p>
+    </section>
+  </div>
+
+  <footer>
+    Curva IDF: CASTRO, A. L. P.; SILVA, C. N. P.; SILVEIRA, A. Curvas Intensidade-Duração-Frequência das precipitações extremas para o município de Cuiabá (MT). <em>Ambiência</em>, v. 7, n. 2, 2011 (UFMT). <a href="https://revistas.unicentro.br/index.php/ambiencia/article/download/0857/1267" target="_blank" rel="noopener">Ver artigo</a>.<br>
+    Ferramenta de apoio. A responsabilidade técnica pelo projeto é do profissional habilitado.
+    <div class="credito"><span>Desenvolvedor</span>Eng. Civil e Sanitarista<br><strong>Raulmar Rodrigues de Freitas</strong></div>
+  </footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const fmt=(x,d=2)=>isFinite(x)?x.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'–';
+const NMAT={aco:{nome:'Aço',n:.011},pvc:{nome:'Plástico (PVC)',n:.011},conc:{nome:'Concreto',n:.012}};
+const PAR_DEF={ret:{r:1.5,bmin:10},cir:{bmin:10},tri:{r:2,bmin:10}};
+const DDEF={cir:{D:100},ret:{a:6,b:10}};
+const DNS=[75,100,125,150,200,250];
+const g=9.81, Cd=0.6;
+
+/* ---------- tipos de cobertura (áreas de contribuição, NBR 10844) ---------- */
+const f2=x=>fmt(x,2);
+const GUT=(x,y,on)=>`<rect class="gut" x="${x}" y="${y}" width="16" height="10" rx="2" ${on?'':'style="opacity:.35"'}/>`;
+const HDIM=(x1,x2,y,t)=>`<line class="dimL" x1="${x1}" x2="${x2}" y1="${y}" y2="${y}"/><line class="dimL" x1="${x1}" x2="${x1}" y1="${y-4}" y2="${y+4}"/><line class="dimL" x1="${x2}" x2="${x2}" y1="${y-4}" y2="${y+4}"/><text class="lb" x="${(x1+x2)/2}" y="${y+13}" text-anchor="middle">${t}</text>`;
+const VDIM=(x,y1,y2,t,anchor='start')=>`<line class="dash" x1="${x}" x2="${x}" y1="${y1}" y2="${y2}"/><text class="lb" x="${anchor==='start'?x+6:x-6}" y="${(y1+y2)/2+4}" text-anchor="${anchor}">${t}</text>`;
+const ROOFS={
+  plana:{nome:'Laje plana',ico:'<path class="stroke" d="M5 18H41M5 22H41" fill="none" stroke-width="2"/>',
+    fields:[{k:'a',lbl:'a',hint:'(largura)',def:8},{k:'b',lbl:'b',hint:'(compr.)',def:12}],
+    nota:'Superfície plana horizontal. A água da largura a escoa para a calha de comprimento b.',
+    area:v=>v.a*v.b, form:v=>`A = a · b = ${f2(v.a)} · ${f2(v.b)}`,
+    svg:()=>`<rect x="40" y="62" width="260" height="14" class="rf"/><path class="dash" d="M170 55L60 55M60 55l6 -4M60 55l6 4"/>${GUT(24,66,1)}${HDIM(40,300,96,'a')}<text x="240" y="48">b = comprimento da calha</text>`},
+  uma:{nome:'Uma água',ico:'<path class="stroke" d="M5 26L41 8V26" fill="none" stroke-width="2"/>',
+    fields:[{k:'a',lbl:'a',hint:'(projeção)',def:8},{k:'h',lbl:'h',hint:'(desnível)',def:1.2},{k:'b',lbl:'b',hint:'(compr.)',def:12}],
+    nota:'Superfície inclinada única. Toda a água escoa para a calha do beiral mais baixo.',
+    area:v=>(v.a+v.h/2)*v.b, form:v=>`A = (a + h/2) · b = (${f2(v.a)} + ${f2(v.h)}/2) · ${f2(v.b)}`,
+    svg:()=>`<path class="rf" d="M40 100L300 40"/>${VDIM(300,40,100,'h')}${GUT(24,96,1)}${HDIM(40,300,116,'a')}<text x="60" y="40">b = comprimento da calha</text>`},
+  duas:{nome:'Duas águas',ico:'<path class="stroke" d="M4 26L23 8L42 26" fill="none" stroke-width="2"/>',
+    fields:[{k:'L',lbl:'L',hint:'(vão total)',def:12},{k:'h',lbl:'h',hint:'(cumeeira)',def:1.8},{k:'b',lbl:'b',hint:'(compr.)',def:12}],
+    nota:'Cada água escoa para sua própria calha. O cálculo é para uma delas (a = L/2).',
+    area:v=>(v.L/2+v.h/2)*v.b, form:v=>`A = (L/2 + h/2) · b = (${f2(v.L)}/2 + ${f2(v.h)}/2) · ${f2(v.b)}`,
+    svg:()=>`<path class="rf" d="M40 100L170 38L300 100"/>${VDIM(170,38,100,'h')}${GUT(24,96,1)}${GUT(300,96,0)}${HDIM(40,300,116,'L')}<text x="60" y="30">a = L/2 por calha</text>`},
+  quatro:{nome:'Quatro águas',ico:'<path class="stroke" d="M5 5H41V25H5ZM14 15H32M5 5L14 15L5 25M41 5L32 15L41 25" fill="none" stroke-width="1.6"/>',
+    fields:[{k:'L',lbl:'L',hint:'(lado maior)',def:14},{k:'W',lbl:'W',hint:'(lado menor)',def:10},{k:'h',lbl:'h',hint:'(cumeeira)',def:2},
+      {k:'lado',lbl:'Calha',sel:[['maior','Lado maior'],['menor','Lado menor'],['todo','Perímetro todo']],def:'maior'}],
+    nota:'Telhado com cumeeira e espigões, mesma inclinação nas quatro águas. Escolha qual calha está sendo dimensionada.',
+    geo:v=>{const L=Math.max(v.L,v.W),W=Math.min(v.L,v.W);return{L,W};},
+    area:v=>{const{L,W}=ROOFS.quatro.geo(v),h=v.h;
+      if(v.lado==='menor')return W*W/4+(W*h/2)/2;
+      if(v.lado==='todo')return L*W+((2*L-W)/2*h)/2;
+      return (2*L-W)*W/4+((2*L-W)/2*h)/2;},
+    form:v=>{const{L,W}=ROOFS.quatro.geo(v);
+      if(v.lado==='menor')return `Face triangular: A = W²/4 + (W·h/2)/2 = ${f2(W)}²/4 + (${f2(W)}·${f2(v.h)}/2)/2`;
+      if(v.lado==='todo')return `Perímetro: A = L·W + [(2L−W)/2 · h]/2 = ${f2(L)}·${f2(W)} + [(2·${f2(L)}−${f2(W)})/2 · ${f2(v.h)}]/2`;
+      return `Face trapezoidal: A = (2L−W)·W/4 + [(2L−W)/2 · h]/2 = (2·${f2(L)}−${f2(W)})·${f2(W)}/4 + [(2·${f2(L)}−${f2(W)})/2·${f2(v.h)}]/2`;},
+    svg:v=>{const x0=70,x1=270,y0=20,y1=120,m=(y1-y0)/2;let face='';
+      if(v.lado==='maior')face=`<polygon points="${x0},${y1} ${x1},${y1} ${x1-m},${y0+m} ${x0+m},${y0+m}" fill="var(--water-soft)"/>`;
+      else if(v.lado==='menor')face=`<polygon points="${x0},${y0} ${x0},${y1} ${x0+m},${y0+m}" fill="var(--water-soft)"/>`;
+      else face=`<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}" fill="var(--water-soft)"/>`;
+      return `${face}<rect class="rf" x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}"/><path class="rf" d="M${x0} ${y0}L${x0+m} ${y0+m}L${x0} ${y1}M${x1} ${y0}L${x1-m} ${y0+m}L${x1} ${y1}M${x0+m} ${y0+m}H${x1-m}"/><text class="lb" x="${(x0+x1)/2}" y="${y1+14}" text-anchor="middle">L</text><text class="lb" x="${x0-8}" y="${(y0+y1)/2+4}" text-anchor="end">W</text><text x="${x1+8}" y="${y0+10}">planta</text>`;}},
+  borb:{nome:'Borboleta ou água-furtada',ico:'<path class="stroke" d="M4 6L23 24L42 10" fill="none" stroke-width="2"/>',
+    fields:[{k:'a1',lbl:'a₁',hint:'(projeção 1)',def:6},{k:'h1',lbl:'h₁',hint:'(desnível 1)',def:1},{k:'a2',lbl:'a₂',hint:'(projeção 2)',def:6},{k:'h2',lbl:'h₂',hint:'(desnível 2)',def:0.8},{k:'b',lbl:'b',hint:'(compr.)',def:12}],
+    nota:'Duas águas que escoam para a mesma calha central (cobertura em V ou rincão entre telhados). Soma-se a projeção horizontal e a diferença entre as alturas.',
+    area:v=>(v.a1+v.a2)*v.b+Math.abs(v.h1-v.h2)*v.b/2,
+    form:v=>`A = (a₁ + a₂)·b + |h₁ − h₂|·b/2 = (${f2(v.a1)} + ${f2(v.a2)})·${f2(v.b)} + |${f2(v.h1)} − ${f2(v.h2)}|·${f2(v.b)}/2`,
+    svg:()=>`<path class="rf" d="M40 40L170 95L300 55"/>${VDIM(40,40,95,'h₁','end')}${VDIM(300,55,95,'h₂')}<line class="dash" x1="40" x2="300" y1="95" y2="95"/>${GUT(162,92,1)}${HDIM(40,170,118,'a₁')}${HDIM(170,300,118,'a₂')}`},
+  arco:{nome:'Curva (arco)',ico:'<path class="stroke" d="M4 26Q23 -6 42 26" fill="none" stroke-width="2"/>',
+    fields:[{k:'L',lbl:'L',hint:'(vão)',def:15},{k:'fl',lbl:'f',hint:'(flecha)',def:2},{k:'b',lbl:'b',hint:'(compr.)',def:20}],
+    nota:'Cobertura em arco com calha em cada beiral. O cálculo é para uma delas, tratando metade do arco como superfície inclinada.',
+    area:v=>(v.L/2+v.fl/2)*v.b, form:v=>`A = (L/2 + f/2) · b = (${f2(v.L)}/2 + ${f2(v.fl)}/2) · ${f2(v.b)}`,
+    svg:()=>`<path class="rf" d="M40 100Q170 -10 300 100"/>${VDIM(170,45,100,'f')}${GUT(24,96,1)}${GUT(300,96,0)}${HDIM(40,300,116,'L')}`}
+};
+
+let st={forma:'ret',mat:'aco',dforma:'cir',par:JSON.parse(JSON.stringify(PAR_DEF)),ddims:{...DDEF.cir},roof:'duas',rv:{}};
+try{const s=JSON.parse(localStorage.getItem('calhaCba2')||'null'); if(s){Object.assign(st,s.st||{}); for(const k in (s.inp||{})){const el=$(k); if(el) el.value=s.inp[k];}}}catch(e){}
+
+const num=id=>parseFloat(String($(id).value).replace(',','.'));
+
+/* ---------- abas ---------- */
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>{x.setAttribute('aria-selected',x===b);$(x.dataset.p).hidden=x!==b;});
+  window.scrollTo({top:0});
+}));
+
+/* ---------- chips ---------- */
+function chipGroup(id,key,onChange){
+  const box=$(id);
+  box.querySelectorAll('.chip').forEach(c=>{
+    c.setAttribute('aria-pressed',c.dataset.v===st[key]);
+    c.addEventListener('click',()=>{st[key]=c.dataset.v;box.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===c));onChange&&onChange();calc();});
+  });
+}
+chipGroup('forma','forma',()=>{buildDims();});
+chipGroup('mat','mat');
+chipGroup('dforma','dforma',()=>{st.ddims={...DDEF[st.dforma]};buildDDims();});
+
+function field(lbl,key,obj,unit,hint){
+  const l=document.createElement('label');l.className='f';
+  l.innerHTML=`<span>${lbl}${hint?` <em>${hint}</em>`:''}</span><div class="inp"><input type="number" inputmode="decimal" step="0.5" id="dim-${key}${obj==='ddims'?'-d':''}" value="${st[obj][key]}"><span class="u">${unit}</span></div>`;
+  l.querySelector('input').addEventListener('input',e=>{st[obj][key]=parseFloat(e.target.value.replace(',','.'));calc();});
+  return l;
+}
+function parField(lbl,key,unit,hint,step){
+  const p=st.par[st.forma];
+  const l=document.createElement('label');l.className='f';
+  l.innerHTML=`<span>${lbl}${hint?` <em>${hint}</em>`:''}</span><div class="inp"><input type="number" inputmode="decimal" step="${step}" min="0" id="par-${st.forma}-${key}" value="${p[key]}"><span class="u">${unit}</span></div>`;
+  l.querySelector('input').addEventListener('input',e=>{p[key]=parseFloat(e.target.value.replace(',','.'));calc();});
+  return l;
+}
+function buildDims(){
+  const d=$('dims');d.innerHTML='';
+  st.par[st.forma]=Object.assign({},PAR_DEF[st.forma],st.par[st.forma]||{});
+  if(st.forma==='ret'){d.append(parField('Relação B/H','r','–','(largura/altura)','0.1'),parField('Largura mínima','bmin','cm','(construtiva)','1'));}
+  if(st.forma==='cir'){d.append(parField('Diâmetro mínimo','bmin','cm','(construtivo)','1'));}
+  if(st.forma==='tri'){d.append(parField('Relação B/H','r','–','(abertura/profund.)','0.1'),parField('Abertura mínima','bmin','cm','(construtiva)','1'));}
+}
+// dimensões em cm para um fator de escala k (H ou D de referência = 10 cm)
+function dimsK(forma,p,k){
+  if(forma==='ret')return{B:p.r*10*k,H:10*k};
+  if(forma==='cir')return{D:10*k};
+  return{B:p.r*10*k,H:10*k};
+}
+const largura=(forma,d)=>forma==='cir'?d.D:d.B;
+function dimensionar(forma,p,n,S,f,Qreq){
+  const d0=dimsK(forma,p,1),s0=secao(forma,d0,f),Q0=manning(s0.A,s0.P,n,S);
+  let k=Math.pow(Qreq/Q0,3/8);           // Manning: Q ∝ k^(8/3)
+  const kmin=(p.bmin||0)/largura(forma,d0);
+  const porMin=kmin>k; if(porMin)k=kmin;
+  const teor=dimsK(forma,p,k),adot={};
+  for(const key in teor)adot[key]=Math.ceil(teor[key]*2-1e-9)/2; // arredonda para cima a cada 0,5 cm
+  return{teor,adot,porMin};
+}
+function buildDDims(){
+  const d=$('ddims');d.innerHTML='';
+  if(st.dforma==='cir'){const l=document.createElement('label');l.className='f';
+    l.innerHTML=`<span>Diâmetro interno</span><select class="sel" id="dn">${DNS.map(x=>`<option value="${x}" ${x==st.ddims.D?'selected':''}>DN ${x} mm</option>`).join('')}</select>`;
+    l.querySelector('select').addEventListener('change',e=>{st.ddims.D=+e.target.value;calc();});d.append(l);}
+  else{d.append(field('Lado a','a','ddims','cm'),field('Lado b','b','ddims','cm'));}
+}
+buildDims();buildDDims();
+
+/* cobertura: chips e campos */
+function rv(){const r=ROOFS[st.roof];st.rv[st.roof]=st.rv[st.roof]||{};const o=st.rv[st.roof];r.fields.forEach(fd=>{if(o[fd.k]===undefined||o[fd.k]===null||o[fd.k]==='')o[fd.k]=fd.def;});return o;}
+function buildRoofChips(){
+  const box=$('roof');
+  box.innerHTML=Object.entries(ROOFS).map(([k,r])=>`<button class="chip" type="button" data-v="${k}" aria-pressed="${k===st.roof}"><svg viewBox="0 0 46 30">${r.ico}</svg>${r.nome}</button>`).join('');
+  box.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{st.roof=c.dataset.v;box.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===c));buildRoofFields();calc();}));
+}
+function buildRoofFields(){
+  const r=ROOFS[st.roof],o=rv(),d=$('rdims');d.innerHTML='';
+  r.fields.forEach(fd=>{
+    const l=document.createElement('label');l.className='f';
+    if(fd.sel){
+      l.innerHTML=`<span>${fd.lbl}</span><select class="sel" id="rf-${fd.k}">${fd.sel.map(([v,t])=>`<option value="${v}" ${v===o[fd.k]?'selected':''}>${t}</option>`).join('')}</select>`;
+      l.querySelector('select').addEventListener('change',e=>{o[fd.k]=e.target.value;calc();});
+    }else{
+      l.innerHTML=`<span>${fd.lbl} <em>${fd.hint||''}</em></span><div class="inp"><input type="number" inputmode="decimal" step="0.1" min="0" id="rf-${fd.k}" value="${o[fd.k]}"><span class="u">m</span></div>`;
+      l.querySelector('input').addEventListener('input',e=>{o[fd.k]=parseFloat(e.target.value.replace(',','.'));calc();});
+    }
+    d.append(l);
+  });
+  $('r-nota').textContent=r.nota;
+}
+buildRoofChips();buildRoofFields();
+
+['T','t','hp','bp','nd','S','fill','rs','acab'].forEach(id=>$(id).addEventListener('input',calc));
+$('acab').addEventListener('change',calc);
+
+/* ---------- hidráulica ---------- */
+const idf=(T,t)=>1016.453*Math.pow(T,.133)/Math.pow(t+7.5,.739);
+
+// geometria em metros; f = fração da altura útil ocupada pela água
+function secao(forma,d,f){
+  if(forma==='ret'){const B=d.B/100,H=d.H/100,y=f*H;return{A:B*y,P:B+2*y,y,T:B};}
+  if(forma==='cir'){const D=d.D/100,y=f*D/2;const th=2*Math.acos(1-2*y/D);return{A:D*D/8*(th-Math.sin(th)),P:D*th/2,y,T:2*Math.sqrt(y*(D-y))};}
+  if(forma==='tri'){const B=d.B/100,H=d.H/100,z=(B/2)/H,y=f*H;return{A:z*y*y,P:2*y*Math.sqrt(1+z*z),y,T:2*z*y};}
+}
+const manning=(A,P,n,S)=>60000*(A/n)*Math.pow(A/P,2/3)*Math.sqrt(S); // L/min
+
+function descida(forma,dd,H,rs){
+  let per,area,Deq;
+  if(forma==='cir'){const D=dd.D/1000;per=Math.PI*D;area=Math.PI*D*D/4;Deq=D;}
+  else{const a=dd.a/100,b=dd.b/100;per=2*(a+b);area=a*b;Deq=Math.sqrt(4*area/Math.PI);}
+  const Qv=Cd*(2/3)*Math.sqrt(2*g)*per*Math.pow(H,1.5)*60000; // L/min
+  const Qo=Cd*area*Math.sqrt(2*g*H)*60000;
+  const Qt=3.15e-4*Math.pow(rs,5/3)*Math.pow(Deq*1000,8/3)*60; // L/s → L/min
+  return{Qv,Qo,Qt,Qc:Math.min(Qv,Qo,Qt),Deq};
+}
+
+/* ---------- desenhos ---------- */
+function drawIDF(T,t,i){
+  const svg=$('idf'),W=340,H=170,L=40,R=12,Tp=12,B=28;
+  const tmax=120,imax=Math.ceil(idf(25,5)/50)*50;
+  const X=v=>L+(v/tmax)*(W-L-R),Y=v=>Tp+(1-v/imax)*(H-Tp-B);
+  let s='';
+  for(let v=0;v<=imax;v+=50){s+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${Y(v)+3}" text-anchor="end">${v}</text>`;}
+  for(let v=0;v<=tmax;v+=20){s+=`<text x="${X(v)}" y="${H-B+14}" text-anchor="middle">${v}</text>`;}
+  s+=`<text x="${(W+L)/2}" y="${H-2}" text-anchor="middle">duração (min)</text><text x="4" y="${Tp-2}">mm/h</text>`;
+  [1,5,25].forEach(Tr=>{let p='';for(let v=1;v<=tmax;v+=1){p+=(v===1?'M':'L')+X(v).toFixed(1)+' '+Y(idf(Tr,v)).toFixed(1);}
+    const on=Tr==T;s+=`<path d="${p}" fill="none" stroke="${on?'var(--accent)':'var(--metal)'}" stroke-width="${on?2.2:1}" ${on?'':'stroke-dasharray="3 3"'}/>`;
+    s+=`<text x="${X(tmax)-2}" y="${Y(idf(Tr,tmax))-4}" text-anchor="end" style="fill:${on?'var(--accent)':'var(--muted)'}">T=${Tr}</text>`;});
+  if(t<=tmax&&isFinite(i)){s+=`<line x1="${X(t)}" x2="${X(t)}" y1="${Y(i)}" y2="${H-B}" stroke="var(--accent)" stroke-dasharray="2 2"/><circle cx="${X(t)}" cy="${Y(i)}" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/><text x="${X(t)+8}" y="${Y(i)+4}" style="fill:var(--fg);font-weight:500">${fmt(i,1)} mm/h</text>`;}
+  svg.innerHTML=s;
+}
+function drawSecao(forma,d,f){
+  const svg=$('secao'),W=340,H=170;
+  let s='',dimTxt='';
+  const maxW= forma==='cir'? d.D : d.B, maxH = forma==='cir'? d.D/2 : d.H;
+  if(!(maxW>0&&maxH>0)){svg.innerHTML='';return;}
+  const k=Math.min(220/maxW,120/maxH),cx=W/2,top=25,w=maxW*k,h=maxH*k,x0=cx-w/2;
+  const yw=top+h-(f*h); // nível d'água
+  if(forma==='ret'){
+    s+=`<rect x="${x0}" y="${yw}" width="${w}" height="${top+h-yw}" fill="var(--water-soft)"/>`;
+    s+=`<path d="M${x0} ${top}V${top+h}H${x0+w}V${top}" fill="none" stroke="var(--fg)" stroke-width="2.5"/>`;
+  }else if(forma==='cir'){
+    const r=w/2,cy=top;
+    s+=`<clipPath id="cp"><rect x="0" y="${yw}" width="${W}" height="${H}"/></clipPath>`;
+    s+=`<path d="M${x0} ${cy}A${r} ${r} 0 0 0 ${x0+w} ${cy}Z" fill="var(--water-soft)" clip-path="url(#cp)"/>`;
+    s+=`<path d="M${x0} ${cy}A${r} ${r} 0 0 0 ${x0+w} ${cy}" fill="none" stroke="var(--fg)" stroke-width="2.5"/>`;
+  }else{
+    const half=(top+h-yw)/h*w/2;
+    s+=`<path d="M${cx-half} ${yw}H${cx+half}L${cx} ${top+h}Z" fill="var(--water-soft)"/>`;
+    s+=`<path d="M${x0} ${top}L${cx} ${top+h}L${x0+w} ${top}" fill="none" stroke="var(--fg)" stroke-width="2.5"/>`;
+  }
+  s+=`<line x1="${x0-6}" x2="${x0+w+6}" y1="${yw}" y2="${yw}" stroke="var(--water)" stroke-width="1.5"/>`;
+  s+=`<text x="${x0+w+10}" y="${yw+3}" style="fill:var(--water)">y = ${fmt(f*maxH,1)} cm</text>`;
+  s+=`<line x1="${x0}" x2="${x0+w}" y1="${top-12}" y2="${top-12}" stroke="var(--muted)"/><text x="${cx}" y="${top-16}" text-anchor="middle">${forma==='cir'?'D':'B'} = ${fmt(maxW,1)} cm</text>`;
+  if(forma!=='cir'){s+=`<line x1="${x0-14}" x2="${x0-14}" y1="${top}" y2="${top+h}" stroke="var(--muted)"/><text x="${x0-18}" y="${top+h/2}" text-anchor="end">H = ${fmt(maxH,1)}</text>`;}
+  svg.innerHTML=s;
+}
+const pill=(c,t)=>`<span class="pill ${c}">${t}</span>`;
+
+/* ---------- cálculo principal ---------- */
+let sugestao=null, last={};
+function calc(){
+  const T=+$('T').value,t=Math.max(num('t'),1),nd=Math.max(1,Math.round(num('nd'))||1);
+  const roof=ROOFS[st.roof],ro=rv(),hp=Math.max(num('hp')||0,0),bp=Math.max(num('bp')||0,0);
+  const Acob=roof.area(ro),Apar=hp*bp/2;
+  $('roofsvg').innerHTML=roof.svg(ro);
+  $('r-form').innerHTML=roof.form(ro)+` = ${fmt(Acob,2)} m²`+(Apar>0?`<br>Parede: (${f2(hp)} · ${f2(bp)})/2 = ${fmt(Apar,2)} m²`:'');
+  const S=num('S')/100,f=Math.min(Math.max(num('fill')/100,.05),1),rs=Math.min(Math.max(num('rs')/100,.05),.6);
+  $('w-acab').hidden=st.mat!=='conc';
+  NMAT.conc.n=parseFloat($('acab').value);
+  $('n-conc').textContent='n = '+fmt(NMAT.conc.n,3);
+  const n=NMAT[st.mat].n;
+
+  const i=idf(T,t), A=Acob+Apar, Q=i*A/60, Qt=Q/nd;
+  $('k-i').innerHTML=`${fmt(i,1)}<small>mm/h</small>`;
+  $('k-q').innerHTML=`${fmt(Qt,0)}<small>L/min</small>`;
+  $('r-A').textContent=fmt(A,2)+' m²';
+  $('r-Q').textContent=fmt(Q,1)+' L/min';
+  drawIDF(T,t,i);
+
+  // calha
+  const par=st.par[st.forma];
+  const valido=Qt>0&&S>0&&n>0&&(st.forma==='cir'||par.r>0);
+  const dm=valido?dimensionar(st.forma,par,n,S,f,Qt):null;
+  const dims=dm?dm.adot:dimsK(st.forma,par,1);
+  st.dims=dims;
+  const sc=secao(st.forma,dims,f);              // seção na lâmina máxima admitida
+  const Qc=manning(sc.A,sc.P,n,S), uso=Qt/Qc;
+  // lâmina normal para a vazão de projeto (bisseção)
+  let lo=0,hi=f;for(let k=0;k<50;k++){const m=(lo+hi)/2,s=secao(st.forma,dims,m);manning(s.A,s.P,n,S)<Qt?lo=m:hi=m;}
+  const fn=hi, sn=secao(st.forma,dims,fn), V=(Qt/60000)/sn.A;
+  $('c-Am').textContent=fmt(sc.A*1e4,1)+' cm²';
+  $('c-P').textContent=fmt(sc.P*100,1)+' cm';
+  $('c-Rh').textContent=fmt(sc.A/sc.P*100,2)+' cm';
+  $('c-V').textContent=fmt(V,2)+' m/s';
+  $('c-Qc').textContent=fmt(Qc,0)+' L/min';
+  $('c-Qp').textContent=fmt(Qt,0)+' L/min';
+  drawSecao(st.forma,dims,fn);
+
+  const tile=(l,v,x)=>`<div class="dt"><div class="l">${l}</div><div class="v">${fmt(v,1)}<small>cm</small></div><div class="x">${x}</div></div>`;
+  if(dm){
+    const t=dm.teor;
+    $('c-dim').innerHTML= st.forma==='cir'
+      ? tile('Diâmetro D',dims.D,`calculado ${fmt(t.D,2)} cm`)+tile('Profundidade',dims.D/2,'meia-cana')
+      : tile(st.forma==='ret'?'Largura B':'Abertura B',dims.B,`calculado ${fmt(t.B,2)} cm`)+tile(st.forma==='ret'?'Altura H':'Profundidade H',dims.H,`calculado ${fmt(t.H,2)} cm`);
+  }else $('c-dim').innerHTML='';
+  let cv,cc;
+  if(!dm){cc='warn';cv=`<strong>Dados incompletos</strong><p>Confira a área do telhado, a declividade e a relação B/H.</p>`;}
+  else if(S<0.005){cc='warn';cv=`<strong>Declividade abaixo de 0,5%</strong><p>A NBR 10844 exige declividade mínima de 0,5% para calhas de beiral e platibanda. As dimensões foram calculadas, mas ajuste a declividade.</p>`;}
+  else{cc='ok';cv=`<strong>Calha dimensionada · ${fmt(uso*100,0)}% da capacidade</strong><p>Dimensões arredondadas para cima a cada 0,5 cm${dm.porMin?', governadas pela largura mínima construtiva':''}. Lâmina para a vazão de projeto: ${fmt(sn.y*100,1)} cm.</p>`;}
+  $('c-ver').className='verdict '+cc;$('c-ver').innerHTML=cv;
+
+  // descida
+  const H=sn.y;
+  const dr=descida(st.dforma,st.ddims,H,rs);
+  $('d-Qp').textContent=fmt(Qt,0)+' L/min';
+  $('d-H').textContent=fmt(H*100,1)+' cm';
+  $('d-Qv').textContent=fmt(dr.Qv,0)+' L/min';
+  $('d-Qo').textContent=fmt(dr.Qo,0)+' L/min';
+  $('d-Qt').textContent=fmt(dr.Qt,0)+' L/min';
+  $('d-Qc').textContent=fmt(dr.Qc,0)+' L/min';
+  const usoD=Qt/dr.Qc, minOk=dr.Deq*1000>=70-0.01;
+  let dv,dc;
+  if(!minOk){dc='bad';dv=`<strong>Abaixo do mínimo da norma</strong><p>O condutor precisa ter diâmetro interno de pelo menos 70 mm (ou seção equivalente).</p>`;}
+  else if(usoD<=1){dc='ok';dv=`<strong>Descida atende · ${fmt(usoD*100,0)}% da capacidade</strong><p>Controle pela ${dr.Qc===dr.Qt?'capacidade do tubo':dr.Qc===dr.Qv?'entrada como vertedor':'entrada como orifício'}.</p>`;}
+  else{const nn=Math.ceil(Q/dr.Qc);dc='bad';dv=`<strong>Descida insuficiente · ${fmt(usoD*100,0)}% da capacidade</strong><p>Use um diâmetro maior ou ${nn} descidas nesta calha.</p>`;}
+  $('d-ver').className='verdict '+dc;$('d-ver').innerHTML=dv;
+
+  // tabela de diâmetros comerciais
+  let first=true,rows='';
+  DNS.forEach(D=>{const r=descida('cir',{D},H,rs);const ok=r.Qc>=Qt;const sel=ok&&first;if(sel)first=false;
+    rows+=`<tr class="${sel?'sel':''}"><td>DN ${D}</td><td>${fmt(r.Qc,0)} L/min</td><td>${fmt(Qt/r.Qc*100,0)}%</td><td>${fmt(r.Qc*60/i,1)} m²</td></tr>`;});
+  $('d-tab').innerHTML=rows;
+
+  // status
+  const okAll=!!dm&&uso<=1&&usoD<=1&&minOk&&S>=0.005;
+  $('k-st').innerHTML=!dm?pill('warn','Incompleto'):okAll?pill('ok','Atende'):pill('bad', uso>1&&usoD>1?'Calha e descida':uso>1||S<0.005?'Revisar calha':'Revisar descida');
+
+  // memorial
+  const nomeForma={ret:'retangular',cir:'semicircular',tri:'triangular'}[st.forma];
+  const dimsTxt=Object.entries(st.dims).map(([k,v])=>`${k} = ${fmt(v,1)} cm`).join('; ');
+  const ddTxt=st.dforma==='cir'?`circular, DN ${st.ddims.D} mm`:`retangular, ${fmt(st.ddims.a,1)} × ${fmt(st.ddims.b,1)} cm`;
+  $('memo').textContent=
+`MEMORIAL DE CÁLCULO · CALHA E CONDUTOR VERTICAL
+Norma de referência: ABNT NBR 10844
+
+1. CHUVA DE PROJETO (Cuiabá/MT)
+   Equação IDF (Castro, Silva e Silveira, UFMT, 2011):
+   i = 1016,453 · T^0,133 / (t + 7,5)^0,739
+   T = ${T} ano(s); t = ${fmt(t,0)} min
+   i = ${fmt(i,1)} mm/h
+
+2. ÁREA DE CONTRIBUIÇÃO
+   Cobertura: ${roof.nome}${st.roof==='quatro'?' (calha: '+({maior:'lado maior',menor:'lado menor',todo:'perímetro todo'})[ro.lado]+')':''}
+   ${roof.form(ro)} = ${fmt(Acob,2)} m²${Apar>0?`
+   Parede acima da cobertura: (${f2(hp)} · ${f2(bp)})/2 = ${fmt(Apar,2)} m²`:''}
+   A total = ${fmt(A,2)} m²
+
+3. VAZÃO DE PROJETO
+   Q = i · A / 60 = ${fmt(Q,1)} L/min
+   Número de descidas: ${nd}
+   Vazão por trecho/descida: ${fmt(Qt,1)} L/min
+
+4. CALHA (dimensionamento)
+   Seção ${nomeForma}${st.forma!=='cir'?`; relação B/H = ${fmt(par.r,2)}`:''}; dimensão mínima construtiva = ${fmt(par.bmin||0,1)} cm
+   Material: ${NMAT[st.mat].nome}; n = ${fmt(n,3)}
+   Declividade: ${fmt(S*100,2)}%; lâmina máxima admitida = ${fmt(f*100,0)}% (y = ${fmt(sc.y*100,1)} cm)
+   Dimensões calculadas: ${dm?Object.entries(dm.teor).map(([k,v])=>`${k} = ${fmt(v,2)} cm`).join('; '):'–'}
+   DIMENSÕES ADOTADAS: ${dimsTxt}
+   Lâmina para a vazão de projeto: ${fmt(sn.y*100,1)} cm
+   Am = ${fmt(sc.A*1e4,1)} cm²; Pm = ${fmt(sc.P*100,1)} cm; Rh = ${fmt(sc.A/sc.P*100,2)} cm
+   Manning: Q = 60000 · (A/n) · Rh^(2/3) · S^(1/2)
+   Capacidade = ${fmt(Qc,0)} L/min; V = ${fmt(V,2)} m/s
+   Utilização: ${fmt(uso*100,0)}% → ${uso<=1?'ATENDE':'NÃO ATENDE'}
+
+5. CONDUTOR VERTICAL
+   Seção ${ddTxt}
+   Lâmina na entrada H = ${fmt(H*100,1)} cm
+   Vertedor: ${fmt(dr.Qv,0)} L/min; Orifício: ${fmt(dr.Qo,0)} L/min
+   Tubo (Wyly-Eaton, rs = ${fmt(rs*100,0)}%): ${fmt(dr.Qt,0)} L/min
+   Capacidade adotada: ${fmt(dr.Qc,0)} L/min
+   Utilização: ${fmt(usoD*100,0)}% → ${usoD<=1&&minOk?'ATENDE':'NÃO ATENDE'}
+
+Resultado geral: ${okAll?'SISTEMA ATENDE':'REVISAR'}
+
+Aplicativo Calha Cuiabá
+Desenvolvedor: Eng. Civil e Sanitarista Raulmar Rodrigues de Freitas`;
+
+  try{const inp={};['T','t','hp','bp','nd','S','fill','rs','acab'].forEach(k=>inp[k]=$(k).value);localStorage.setItem('calhaCba2',JSON.stringify({st,inp}));}catch(e){}
+}
+
+$('copiar').addEventListener('click',()=>{
+  const txt=$('memo').textContent;
+  const done=()=>{$('copiado').textContent='Memorial copiado';setTimeout(()=>$('copiado').textContent='',2500);};
+  try{navigator.clipboard.writeText(txt).then(done,()=>{selectMemo();});}catch(e){selectMemo();}
+});
+function selectMemo(){const r=document.createRange();r.selectNodeContents($('memo'));const s=getSelection();s.removeAllRanges();s.addRange(r);$('copiado').textContent='Texto selecionado. Toque em Copiar.';}
+
+calc();
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+</script>
+</body></html>

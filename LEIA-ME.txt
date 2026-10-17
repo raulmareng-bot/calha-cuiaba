@@ -1,0 +1,25 @@
+CALHA CUIABÁ — INSTALAÇÃO OFFLINE
+
+Este pacote contém os arquivos de um PWA (aplicativo web instalável).
+Para instalar no iPhone e permitir uso offline, os arquivos precisam ser publicados JUNTOS em um site HTTPS. Abrir index.html como arquivo no iPhone não instala o PWA.
+
+IPHONE (após publicar em HTTPS):
+1. Abra o endereço publicado pelo Safari, conectado à internet.
+2. Toque no botão Compartilhar e escolha Adicionar à Tela de Início (ou Abrir como App da Web).
+3. Abra o ícone Calha Cuiabá enquanto ainda estiver conectado, para confirmar o carregamento.
+4. Ative o Modo Avião e abra o ícone novamente para testar o uso offline.
+
+COMPUTADOR (Windows/macOS/Linux):
+1. Abra o endereço HTTPS publicado no Chrome ou Edge.
+2. Menu do navegador > Instalar Calha Cuiabá (ou Aplicativos > Instalar este site como aplicativo).
+3. Abra uma vez com internet, depois teste desconectado.
+
+ALTERNATIVA NO COMPUTADOR: pode executar localmente com servidor HTTP (por exemplo, python -m http.server 8000 dentro da pasta, e abrir http://localhost:8000); navegadores tratam localhost como contexto seguro para service workers. Abrir diretamente via file:// não assegura instalação offline.
+
+Observações:
+- As fontes agora são locais/do sistema, sem depender do Google Fonts.
+- O aplicativo não busca APIs externas para fazer os cálculos.
+- O botão para consultar o artigo técnico abre link externo e exige internet.
+- O navegador pode apagar o armazenamento se o usuário limpar dados de sites.
+- O funcionamento offline só está assegurado depois da instalação, do primeiro acesso bem-sucedido e do teste em modo avião.
+- Os cálculos de engenharia não foram submetidos a validação técnica independente nesta etapa.

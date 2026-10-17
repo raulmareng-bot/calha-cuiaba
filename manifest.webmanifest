@@ -1,0 +1,16 @@
+{
+  "name": "Calha Cuiabá",
+  "short_name": "Calha Cuiabá",
+  "description": "Dimensionamento de calhas e condutores verticais (NBR 10844) com a curva de chuva de Cuiabá. Desenvolvido por Eng. Civil e Sanitarista Raulmar Rodrigues de Freitas.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EAF0F2",
+  "theme_color": "#0E6E8C",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
